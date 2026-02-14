@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 
 class ConfigurationError(Exception):
     """Raised when configuration is invalid or missing required variables."""
-    pass
 
 
 class Settings:

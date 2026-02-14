@@ -30,7 +30,7 @@ The project uses environment variables for configuration. To set up:
    from config import get_settings
    
    settings = get_settings()
-   print(settings.api_key)  # Access configuration values
+   print(settings.base_url)  # Access configuration values
    ```
 
 The configuration module validates that all required environment variables are set and provides clear error messages if any are missing.
