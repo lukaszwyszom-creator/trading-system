@@ -50,12 +50,12 @@ class Settings:
             ConfigurationError: If the environment variable is not set or is empty
         """
         value = os.getenv(var_name)
-        if not value:
+        if not value or not value.strip():
             raise ConfigurationError(
-                f"Required environment variable '{var_name}' is not set. "
+                f"Required environment variable '{var_name}' is not set or is empty. "
                 f"Please ensure it is defined in your .env file."
             )
-        return value
+        return value.strip()
     
     def __repr__(self) -> str:
         """Return a string representation with masked sensitive data."""
