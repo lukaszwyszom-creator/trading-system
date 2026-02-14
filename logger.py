@@ -32,24 +32,29 @@ class LogLevel(str, Enum):
 
 class ColoredFormatter(logging.Formatter):
     """Formatter that adds color to console output."""
-    
+
     # ANSI color codes
     COLORS = {
-        'DEBUG': '\033[36m',     # Cyan
-        'INFO': '\033[32m',      # Green
-        'WARNING': '\033[33m',   # Yellow
-        'ERROR': '\033[31m',     # Red
-        'RESET': '\033[0m'       # Reset
+        "DEBUG": "\033[36m",    # Cyan
+        "INFO": "\033[32m",     # Green
+        "WARNING": "\033[33m",  # Yellow
+        "ERROR": "\033[31m",    # Red
+        "RESET": "\033[0m",     # Reset
     }
-    
+
     def format(self, record: logging.LogRecord) -> str:
-        """Format log record with colors."""
-        if record.levelname in self.COLORS:
-            record.levelname = (
-                f"{self.COLORS[record.levelname]}{record.levelname}"
-                f"{self.COLORS['RESET']}"
-            )
-        return super().format(record)
+        """Format log record with colors (without mutating the record)."""
+        levelname = record.levelname
+        color = self.COLORS.get(levelname, "")
+        reset = self.COLORS["RESET"]
+
+        formatted = super().format(record)
+
+        if color:
+            # Replace only the first occurrence to avoid coloring other text
+            formatted = formatted.replace(levelname, f"{color}{levelname}{reset}", 1)
+
+        return formatted
 
 
 class JSONFormatter(logging.Formatter):
@@ -57,15 +62,10 @@ class JSONFormatter(logging.Formatter):
     
     def format(self, record: logging.LogRecord) -> str:
         """Format log record as JSON."""
-        # Get the raw level name without color codes
-        level_name = record.levelname
-        # Remove ANSI color codes if present
-        import re
-        level_name = re.sub(r'\x1b\[[0-9;]*m', '', level_name)
-        
+           
         log_data: Dict[str, Any] = {
             'timestamp': datetime.utcnow().isoformat() + 'Z',
-            'level': level_name,
+            'level': record.levelname,
             'logger': record.name,
             'message': record.getMessage(),
         }
@@ -176,12 +176,15 @@ class TradingLogger:
     
     def trade_event(self, event: TradeEvent) -> None:
         """
-        Log a trade event to the trade journal.
-        
-        Args:
-            event: TradeEvent instance to log
+        Log a trade event to both the trade journal and application logs.
         """
-        self.trade_logger.info(event.to_json())
+        payload = event.to_dict()
+
+        # 1) trade_journal.log → czysty JSON line (audyt)
+        self.trade_logger.info(json.dumps(payload))
+
+        # 2) trading_system.log → structured logging (debug + analiza)
+        self.logger.info("trade_event", extra={"trade": payload})
 
 
 # Configuration state
@@ -243,8 +246,10 @@ def _configure_logging() -> None:
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
     
-    # Remove existing handlers to avoid duplicates
-    root_logger.handlers.clear()
+    # Remove existing handlers to avoid duplicates (close cleanly)
+    for h in root_logger.handlers[:]:
+        h.close()
+        root_logger.removeHandler(h)
     
     # Add console handler if enabled
     if config['console_logging']:
