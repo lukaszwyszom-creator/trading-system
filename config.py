@@ -23,6 +23,10 @@ class Settings:
         api_key: API key for trading platform authentication
         api_secret: API secret for trading platform authentication
         base_url: Base URL for the trading platform API
+        log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
+        log_directory: Directory for log files
+        console_logging: Enable console output
+        json_logging: Enable JSON structured logging
     """
     
     def __init__(self) -> None:
@@ -34,6 +38,12 @@ class Settings:
         self.api_key: str = self._get_required_env("API_KEY")
         self.api_secret: str = self._get_required_env("API_SECRET")
         self.base_url: str = self._get_required_env("BASE_URL")
+        
+        # Load optional logging configuration with defaults
+        self.log_level: str = os.getenv("LOG_LEVEL", "INFO").upper()
+        self.log_directory: str = os.getenv("LOG_DIRECTORY", "./logs")
+        self.console_logging: bool = os.getenv("CONSOLE_LOGGING", "true").lower() == "true"
+        self.json_logging: bool = os.getenv("JSON_LOGGING", "true").lower() == "true"
     
     def _get_required_env(self, var_name: str) -> str:
         """
