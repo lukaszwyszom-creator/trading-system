@@ -1,16 +1,43 @@
-# Stock RSI Signal Project
+# Trading System
 
-This project downloads stock prices using yfinance, calculates the RSI (Relative Strength Index), and prints buy/sell/hold signals based on RSI thresholds.
+A production-ready trading system with clean architecture, structured logging, and extensible design.
 
-## Structure
-- main.py: Main CLI script
-- main_with_logging.py: Example integration with logging
-- config.py: Configuration loader for environment variables
-- logger.py: Structured logging and trade journal module
-- requirements.txt: Dependencies
-- README.md: Project documentation
-- .env.example: Example environment configuration file
-- test_logger.py: Test script for logger module
+## Overview
+
+This trading system provides a modular framework for algorithmic trading with:
+- **Core Trading Engine**: Orchestrates market data feeds, strategies, and execution
+- **Market Data Interface**: Abstract interface for connecting to various data sources
+- **Strategy Framework**: Base classes for implementing trading strategies
+- **Structured Logging**: JSON logging with trade journaling for audit trails
+- **Type Safety**: Full type annotations for production code
+
+## Project Structure
+
+```
+trading-system/
+├── core/                       # Core trading engine
+│   ├── __init__.py
+│   └── engine.py              # TradingEngine class
+├── data/                       # Market data interfaces
+│   ├── __init__.py
+│   ├── data_feed.py           # Abstract MarketDataFeed base class
+│   └── mock_feed.py           # Mock data feed for testing
+├── strategy/                   # Trading strategies
+│   ├── __init__.py
+│   ├── base.py                # BaseStrategy abstract class
+│   └── test_strategy.py      # Example test strategy
+├── models/                     # Data models
+│   ├── __init__.py
+│   └── signal.py              # TradingSignal dataclass
+├── config.py                   # Configuration management
+├── logger.py                   # Structured logging module
+├── example_engine.py           # Example usage
+├── test_engine.py              # Test suite
+├── main.py                     # Legacy RSI CLI script
+├── main_with_logging.py        # Legacy example with logging
+├── test_logger.py              # Logger test script
+└── requirements.txt            # Dependencies
+```
 
 ## Configuration
 
@@ -43,6 +70,134 @@ The project uses environment variables for configuration. To set up:
    ```
 
 The configuration module validates that all required environment variables are set and provides clear error messages if any are missing.
+
+## Architecture
+
+### Core Trading Engine (`core/engine.py`)
+
+The `TradingEngine` class orchestrates the entire trading system:
+
+- **Dependency Injection**: Accepts data feed, strategies, and optional execution handler
+- **Heartbeat Loop**: Configurable interval for processing market data and strategies
+- **Lifecycle Management**: `start()`, `stop()`, and `run_loop()` methods
+- **Structured Logging**: Full integration with the logging system
+
+Example usage:
+
+```python
+from core.engine import TradingEngine
+from data.mock_feed import MockDataFeed
+from strategy.test_strategy import SimpleTestStrategy
+
+# Create components
+data_feed = MockDataFeed()
+strategies = [SimpleTestStrategy("strategy_1")]
+
+# Create and start engine
+engine = TradingEngine(
+    data_feed=data_feed,
+    strategies=strategies,
+    heartbeat_interval=1.0
+)
+engine.start()
+engine.run_loop(max_iterations=10)
+```
+
+### Market Data Interface (`data/data_feed.py`)
+
+Abstract base class `MarketDataFeed` defines the contract for market data providers:
+
+- `connect()`: Establish connection to data source
+- `disconnect()`: Close connection and cleanup
+- `get_latest_price(symbol)`: Retrieve latest price for a symbol
+- `is_connected`: Property to check connection status
+
+The interface is async-friendly but sync compatible. Implementations can be:
+- Real-time websocket feeds
+- REST API polling
+- Historical data providers
+- Mock feeds for testing (see `data/mock_feed.py`)
+
+### Strategy Framework (`strategy/base.py`)
+
+Base class `BaseStrategy` defines the interface for trading strategies:
+
+```python
+class MyStrategy(BaseStrategy):
+    def __init__(self, strategy_id: str):
+        super().__init__(strategy_id)
+        # Initialize indicators, state, etc.
+    
+    def on_price_update(self, symbol: str, price: float) -> Optional[TradingSignal]:
+        # Analyze price and generate signal
+        if self.should_buy(symbol, price):
+            return TradingSignal(
+                symbol=symbol,
+                side="BUY",
+                qty=100,
+                strategy_id=self.strategy_id,
+                timestamp=datetime.utcnow(),
+                price=price
+            )
+        return None
+```
+
+### Trading Signals (`models/signal.py`)
+
+The `TradingSignal` dataclass represents trading decisions:
+
+```python
+@dataclass
+class TradingSignal:
+    symbol: str              # Trading symbol
+    side: str                # "BUY", "SELL", or "HOLD"
+    qty: Optional[float]     # Quantity (None for HOLD)
+    strategy_id: str         # Strategy identifier
+    timestamp: datetime      # Signal generation time
+    price: Optional[float]   # Price at signal generation
+    metadata: Optional[dict] # Additional strategy data
+```
+
+Signals are validated on creation and automatically logged to the trade journal.
+
+## Running the System
+
+### Example Script
+
+Run the example to see the engine in action:
+
+```bash
+python example_engine.py
+```
+
+This demonstrates:
+- Creating a mock data feed
+- Configuring multiple strategies
+- Starting and running the engine
+- Automatic signal generation and logging
+
+### Testing
+
+Run the comprehensive test suite:
+
+```bash
+python test_engine.py
+```
+
+Tests cover:
+- TradingSignal validation
+- MarketDataFeed interface
+- BaseStrategy implementation
+- TradingEngine lifecycle
+- Error handling
+
+### Legacy RSI Example
+
+The original RSI signal script is still available:
+
+```bash
+python main_with_logging.py AAPL
+```
 
 ## Logging System
 
