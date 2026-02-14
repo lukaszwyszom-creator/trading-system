@@ -1,0 +1,16 @@
+- [x] Clarify Project Requirements
+	- User requested a Python project to download stock prices and print RSI signals.
+- [x] Scaffold the Project
+	- Project files (main.py, requirements.txt, README.md) created.
+- [x] Customize the Project
+	- Implemented CLI script to fetch prices, calculate RSI, and print signals.
+- [x] Install Required Extensions
+	- No additional VS Code extensions required.
+- [x] Compile the Project
+	- Dependencies installed and code checked for errors.
+- [x] Create and Run Task
+	- Task created and script executed successfully.
+- [x] Launch the Project
+	- Project launched and RSI signal printed for sample ticker.
+- [x] Ensure Documentation is Complete
+	- README.md and copilot-instructions.md are up to date.
