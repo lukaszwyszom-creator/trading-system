@@ -6,7 +6,7 @@ for testing purposes.
 """
 
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from strategy.base import BaseStrategy
@@ -59,6 +59,6 @@ class SimpleTestStrategy(BaseStrategy):
             side=side,
             qty=qty,
             strategy_id=self.strategy_id,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             price=price
         )

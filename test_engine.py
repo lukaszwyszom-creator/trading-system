@@ -25,7 +25,7 @@ def test_signal_creation():
     print("=" * 60)
     
     from models.signal import TradingSignal
-    from datetime import datetime
+    from datetime import datetime, timezone
     
     # Test valid BUY signal
     signal = TradingSignal(
@@ -33,7 +33,7 @@ def test_signal_creation():
         side="BUY",
         qty=100.0,
         strategy_id="test_strategy",
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         price=150.25
     )
     print(f"✓ Created BUY signal: {signal}")
@@ -44,7 +44,7 @@ def test_signal_creation():
         side="HOLD",
         qty=None,
         strategy_id="test_strategy",
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     )
     print(f"✓ Created HOLD signal: {hold_signal}")
     
@@ -55,7 +55,7 @@ def test_signal_creation():
             side="INVALID",
             qty=100.0,
             strategy_id="test_strategy",
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         print("✗ Should have raised ValueError for invalid side")
         return False
@@ -69,7 +69,7 @@ def test_signal_creation():
             side="BUY",
             qty=None,
             strategy_id="test_strategy",
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         print("✗ Should have raised ValueError for missing qty on BUY")
         return False
