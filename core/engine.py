@@ -191,31 +191,31 @@ class TradingEngine:
         except KeyboardInterrupt:
             self.logger.info("Received keyboard interrupt, stopping engine")
             self.stop()
-       except Exception as e:
-    self.logger.error(
-        f"Error in trading loop: {str(e)}",
-        iteration=iteration,
-        exc_info=True
-    )
-
-    # journal ERROR (best-effort)
-    try:
-        self.logger.trade_event(
-            TradeEvent(
-                symbol="SYSTEM",
-                side="ERROR",
-                qty=None,
-                price=None,
-                strategy_id="ENGINE",
-                event_type="ERROR",
-                message=str(e),
+        except Exception as e:
+            self.logger.error(
+                f"Error in trading loop: {str(e)}",
+                iteration=iteration,
+                exc_info=True
             )
-        )
-    except Exception:
-        pass
 
-    # continue loop unless stopped explicitly
-    
+            # journal ERROR (best-effort)
+            try:
+                self.logger.trade_event(
+                    TradeEvent(
+                        symbol="SYSTEM",
+                        side="ERROR",
+                        qty=None,
+                        price=None,
+                        strategy_id="ENGINE",
+                        event_type="ERROR",
+                        message=str(e),
+                    )
+                )
+            except Exception:
+                pass
+
+            # continue loop unless stopped explicitly
+            
         finally:
             if self._running:
                 self.stop()
