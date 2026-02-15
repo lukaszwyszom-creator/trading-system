@@ -45,7 +45,7 @@ class TradingEngine:
             strategies: List of trading strategies to run
             heartbeat_interval: Seconds between heartbeat cycles (default: 1.0)
             execution_handler: Optional execution handler for trade execution
-                              (not implemented yet, reserved for future use)
+                              (e.g., PaperExecutionHandler)
         
         Raises:
             ValueError: If strategies list is empty or heartbeat_interval is invalid
@@ -266,8 +266,8 @@ class TradingEngine:
         """
         Process a trading signal.
         
-        This method logs the signal and would normally send it to
-        an execution handler. For now, it just logs the signal.
+        This method logs the signal and sends it to the execution handler
+        if one is configured.
         
         Args:
             signal: Trading signal to process
@@ -283,9 +283,35 @@ class TradingEngine:
         # Log to trade journal
         self.logger.trade_event(signal.to_trade_event(event_type="SIGNAL"))
         
-        # TODO: Send to execution handler when implemented
+        # Send to execution handler if provided
         if self.execution_handler:
-            self.logger.debug("Execution handler not yet implemented")
+            try:
+                # Skip HOLD signals
+                if signal.side == "HOLD":
+                    self.logger.debug(
+                        "Skipping HOLD signal for execution",
+                        symbol=signal.symbol,
+                        strategy_id=signal.strategy_id
+                    )
+                    return
+                
+                # Execute the signal
+                fill = self.execution_handler.execute(signal)
+                self.logger.info(
+                    f"Trade executed: {fill}",
+                    symbol=fill.symbol,
+                    side=fill.side,
+                    qty=fill.qty,
+                    price=fill.price
+                )
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to execute signal: {str(e)}",
+                    symbol=signal.symbol,
+                    side=signal.side,
+                    qty=signal.qty,
+                    exc_info=True
+                )
     
     @property
     def is_running(self) -> bool:
