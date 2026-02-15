@@ -139,8 +139,7 @@ class Portfolio:
             self.positions[symbol] = Position(symbol=symbol)
         return self.positions[symbol]
     
-    def update_position(self, symbol: str, qty_delta: float, price: float, fee: float = 0.0) -> None:
-        """
+    def update_position(self, symbol: str, qty_delta: float, price: float) -> None:        """
         Update position and cash after a trade.
         
         Args:
@@ -156,13 +155,13 @@ class Portfolio:
         
         # Calculate trade value and total cost
         trade_value = abs(qty_delta) * price
-        total_cost = trade_value + fee
+       
         
         # For buy orders (qty_delta > 0), check sufficient cash
         if qty_delta > 0:
-            if total_cost > self.cash:
+            if trade_value > self.cash:
                 raise ValueError(
-                    f"Insufficient cash for trade: need {total_cost:.2f}, have {self.cash:.2f}"
+                    f"Insufficient cash for trade: need {trade_value:.2f}, have {self.cash:.2f}"
                 )
         
         # Calculate realized P&L if closing/reducing a position
@@ -177,11 +176,9 @@ class Portfolio:
         
         # Update cash (buy decreases cash, sell increases cash)
         if qty_delta > 0:
-            # Buy: decrease cash by trade value + fee
-            self.cash -= total_cost
+            self.cash -= trade_value
         else:
-            # Sell: increase cash by trade value - fee
-            self.cash += trade_value - fee
+            self.cash += trade_value
     
     def calculate_unrealized_pnl(self, prices: Dict[str, float]) -> float:
         """
