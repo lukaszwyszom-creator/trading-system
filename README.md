@@ -6,6 +6,8 @@ A production-ready trading system with clean architecture, structured logging, a
 
 This trading system provides a modular framework for algorithmic trading with:
 - **Core Trading Engine**: Orchestrates market data feeds, strategies, and execution
+- **Paper Trading Execution**: Realistic simulation with slippage, commission, and P&L tracking
+- **Portfolio Management**: Position tracking with realized and unrealized P&L
 - **Market Data Interface**: Abstract interface for connecting to various data sources
 - **Strategy Framework**: Base classes for implementing trading strategies
 - **Structured Logging**: JSON logging with trade journaling for audit trails
@@ -26,13 +28,21 @@ trading-system/
 │   ├── __init__.py
 │   ├── base.py                # BaseStrategy abstract class
 │   └── test_strategy.py      # Example test strategy
+├── execution/                  # Trade execution handlers
+│   ├── __init__.py
+│   └── paper.py               # PaperExecutionHandler for paper trading
+├── portfolio/                  # Portfolio and position management
+│   ├── __init__.py
+│   └── positions.py           # Position and Portfolio classes
 ├── models/                     # Data models
 │   ├── __init__.py
-│   └── signal.py              # TradingSignal dataclass
+│   ├── signal.py              # TradingSignal dataclass
+│   └── fill.py                # FillEvent dataclass
 ├── config.py                   # Configuration management
 ├── logger.py                   # Structured logging module
 ├── example_engine.py           # Example usage
-├── test_engine.py              # Test suite
+├── test_engine.py              # Core engine test suite
+├── test_paper_execution.py     # Paper execution test suite
 ├── main.py                     # Legacy RSI CLI script
 ├── main_with_logging.py        # Legacy example with logging
 ├── test_logger.py              # Logger test script
@@ -160,6 +170,82 @@ class TradingSignal:
 
 Signals are validated on creation and automatically logged to the trade journal.
 
+### Paper Trading Execution (`execution/paper.py`)
+
+The `PaperExecutionHandler` provides a realistic paper trading simulation with:
+
+- **Trade Execution**: Executes BUY/SELL signals from strategies
+- **Slippage Simulation**: Configurable random slippage in basis points
+- **Commission**: Configurable commission rate as a percentage of trade value
+- **Position Tracking**: Automatically updates positions with average price calculation
+- **P&L Tracking**: Tracks both realized and unrealized profit/loss
+- **Trade Journaling**: Logs ORDER and FILL events to trade journal
+
+Example usage:
+
+```python
+from core.engine import TradingEngine
+from execution.paper import PaperExecutionHandler
+from data.mock_feed import MockDataFeed
+from strategy.test_strategy import SimpleTestStrategy
+
+# Create paper execution handler
+execution_handler = PaperExecutionHandler(
+    initial_cash=100000.0,      # Starting cash
+    commission_rate=0.001,       # 0.1% commission
+    slippage_bps=5.0,           # 5 bps max slippage
+    random_seed=42              # For deterministic testing
+)
+
+# Create and start engine with execution
+engine = TradingEngine(
+    data_feed=MockDataFeed(),
+    strategies=[SimpleTestStrategy("strategy_1")],
+    execution_handler=execution_handler
+)
+engine.start()
+engine.run_loop(max_iterations=100)
+
+# Check portfolio state
+summary = execution_handler.get_portfolio_summary()
+print(f"Cash: {summary['cash']:.2f}")
+print(f"Realized P&L: {summary['realized_pnl']:.2f}")
+print(f"Positions: {summary['num_positions']}")
+```
+
+### Portfolio Management (`portfolio/positions.py`)
+
+The portfolio module provides position and P&L tracking:
+
+**Position Class**: Tracks individual symbol positions
+- Quantity and average entry price
+- Smart average price calculation when adding/reducing positions
+- Unrealized P&L calculation at current market prices
+
+**Portfolio Class**: Manages overall portfolio state
+- Cash balance tracking
+- Multiple symbol positions
+- Realized P&L from closed trades
+- Total equity calculation with current prices
+- Validates sufficient cash before trades
+
+### Fill Events (`models/fill.py`)
+
+The `FillEvent` dataclass represents executed trades:
+
+```python
+@dataclass
+class FillEvent:
+    timestamp: datetime      # Execution timestamp
+    symbol: str             # Trading symbol
+    side: str               # "BUY" or "SELL"
+    qty: float              # Quantity filled
+    price: float            # Execution price
+    strategy_id: str        # Originating strategy
+    fee: float              # Commission/fee paid
+    slippage: float         # Slippage amount
+
+
 ## Running the System
 
 ### Example Script
@@ -178,18 +264,30 @@ This demonstrates:
 
 ### Testing
 
-Run the comprehensive test suite:
+Run the comprehensive test suites:
 
 ```bash
+# Core engine tests
 python test_engine.py
+
+# Paper execution tests
+python test_paper_execution.py
 ```
 
-Tests cover:
+**Core Engine Tests** cover:
 - TradingSignal validation
 - MarketDataFeed interface
 - BaseStrategy implementation
 - TradingEngine lifecycle
 - Error handling
+
+**Paper Execution Tests** cover:
+- FillEvent creation and validation
+- Position tracking and average price calculation
+- Portfolio management and P&L tracking
+- PaperExecutionHandler with slippage and commission
+- Buy/sell lifecycle with realized P&L
+- End-to-end engine integration with execution
 
 ### Legacy RSI Example
 
