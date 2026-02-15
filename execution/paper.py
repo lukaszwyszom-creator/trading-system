@@ -119,7 +119,7 @@ class PaperExecutionHandler:
         # For SELL orders: negative slippage decreases price (worse for seller)
         slippage_factor = self._calculate_slippage(signal.side)
         slipped_price = exec_price * (1 + slippage_factor)
-        slippage_amount = slipped_price - exec_price
+        slippage_amount = abs(slipped_price - exec_price)
         
         # Calculate commission
         trade_value = signal.qty * slipped_price
@@ -141,24 +141,30 @@ class PaperExecutionHandler:
         # Determine quantity delta (positive for buy, negative for sell)
         qty_delta = signal.qty if signal.side == "BUY" else -signal.qty
         
-        # Update portfolio
-        try:
-            self.portfolio.update_position(
-                symbol=signal.symbol,
-                qty_delta=qty_delta,
-                price=slipped_price,
-                fee=commission
-            )
-        except ValueError as e:
-            # Log error if portfolio update fails (e.g., insufficient cash)
-            self.logger.error(
-                f"Failed to execute trade: {str(e)}",
-                symbol=signal.symbol,
-                side=signal.side,
-                qty=signal.qty,
-                price=slipped_price
-            )
-            raise
+       # Update portfolio
+try:
+    self.portfolio.update_position(
+        symbol=signal.symbol,
+        qty_delta=qty_delta,
+        price=slipped_price,
+    )
+
+    # Book commission as a separate cost (does not affect avg_price)
+    self.portfolio.cash -= commission
+    self.portfolio.realized_pnl -= commission
+
+except ValueError as e:
+    # Log error if portfolio update fails (e.g., insufficient cash)
+    self.logger.error(
+        f"Failed to execute trade: {str(e)}",
+        symbol=signal.symbol,
+        side=signal.side,
+        qty=signal.qty,
+        price=slipped_price,
+        fee=commission,
+        exc_info=True,
+    )
+    raise
         
         # Create fill event
         fill = FillEvent(
