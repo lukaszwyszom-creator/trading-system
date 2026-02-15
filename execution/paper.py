@@ -7,9 +7,15 @@ trade execution in a paper trading environment with slippage and commission.
 
 import random
 from datetime import datetime, timezone
+<<<<<<< Updated upstream
 from typing import Optional
 
 from logger import TradeEvent, get_logger
+=======
+from typing import Optional, Dict, Any, List
+
+from models.signal import TradingSignal
+>>>>>>> Stashed changes
 from models.fill import FillEvent
 from models.signal import TradingSignal
 from portfolio.positions import Portfolio
@@ -27,7 +33,7 @@ class PaperExecutionHandler:
         commission_rate: Commission rate as a fraction of trade value (e.g., 0.001 = 0.1%)
         slippage_bps: Slippage in basis points (e.g., 5 = 0.05%)
         logger: Structured logger instance
-        random_seed: Seed for random number generator (for deterministic testing)
+        _rng: Random number generator (for deterministic testing when seeded)
     """
 
     def __init__(
@@ -64,10 +70,14 @@ class PaperExecutionHandler:
         self.logger = get_logger(__name__)
 
         # Initialize random number generator for deterministic slippage
+<<<<<<< Updated upstream
         if random_seed is not None:
             self._rng = random.Random(random_seed)
         else:
             self._rng = random.Random()
+=======
+        self._rng = random.Random(random_seed) if random_seed is not None else random.Random()
+>>>>>>> Stashed changes
 
         self.logger.info(
             "PaperExecutionHandler initialized",
@@ -144,11 +154,15 @@ class PaperExecutionHandler:
 
         # Update portfolio
         try:
+<<<<<<< Updated upstream
             self.portfolio.update_position(
                 symbol=signal.symbol,
                 qty_delta=qty_delta,
                 price=slipped_price,
             )
+=======
+            self.portfolio.update_position(signal.symbol, qty_delta, slipped_price)
+>>>>>>> Stashed changes
 
             # Book commission as a separate cost (does not affect avg_price)
             self.portfolio.cash -= commission
@@ -168,7 +182,11 @@ class PaperExecutionHandler:
             raise
 
         # Create fill event
+<<<<<<< Updated upstream
         fill = FillEvent(
+=======
+        fill_event = FillEvent(
+>>>>>>> Stashed changes
             timestamp=datetime.now(timezone.utc),
             symbol=signal.symbol,
             side=signal.side,
@@ -180,10 +198,17 @@ class PaperExecutionHandler:
         )
 
         # Log FILL event to trade journal
+<<<<<<< Updated upstream
         self.logger.trade_event(fill.to_trade_event(event_type="FILL"))
 
         self.logger.info(
             f"Trade executed: {fill}",
+=======
+        self.logger.trade_event(fill_event.to_trade_event(event_type="FILL"))
+
+        self.logger.info(
+            f"Trade executed: {fill_event}",
+>>>>>>> Stashed changes
             symbol=signal.symbol,
             side=signal.side,
             qty=signal.qty,
@@ -194,7 +219,11 @@ class PaperExecutionHandler:
             realized_pnl=self.portfolio.realized_pnl,
         )
 
+<<<<<<< Updated upstream
         return fill
+=======
+        return fill_event
+>>>>>>> Stashed changes
 
     def _calculate_slippage(self, side: str) -> float:
         """
@@ -210,6 +239,7 @@ class PaperExecutionHandler:
         Returns:
             Slippage as a fraction (e.g., 0.0005 = 0.05%)
         """
+<<<<<<< Updated upstream
         # Generate random slippage between 0 and max slippage
         slippage = self._rng.uniform(0, self.slippage_bps / 10000.0)
 
@@ -217,13 +247,23 @@ class PaperExecutionHandler:
         return slippage if side == "BUY" else -slippage
 
     def get_portfolio_summary(self) -> dict:
+=======
+        slippage = self._rng.uniform(0, self.slippage_bps / 10000.0)
+        return slippage if side == "BUY" else -slippage
+
+    def get_portfolio_summary(self) -> Dict[str, Any]:
+>>>>>>> Stashed changes
         """
         Get current portfolio summary.
 
         Returns:
             Dictionary with portfolio state including cash, positions, and P&L
         """
+<<<<<<< Updated upstream
         positions_summary = []
+=======
+        positions_summary: List[Dict[str, Any]] = []
+>>>>>>> Stashed changes
         for symbol, position in self.portfolio.positions.items():
             if position.qty != 0:
                 positions_summary.append(
@@ -249,4 +289,8 @@ class PaperExecutionHandler:
             f"PaperExecutionHandler(cash={self.portfolio.cash:.2f}, "
             f"commission={self.commission_rate:.4f}, "
             f"slippage={self.slippage_bps:.2f}bps)"
+<<<<<<< Updated upstream
         )
+=======
+        )
+>>>>>>> Stashed changes
