@@ -139,14 +139,14 @@ class Portfolio:
             self.positions[symbol] = Position(symbol=symbol)
         return self.positions[symbol]
     
-    def update_position(self, symbol: str, qty_delta: float, price: float) -> None:        """
+    def update_position(self, symbol: str, qty_delta: float, price: float) -> None:        
+        """
         Update position and cash after a trade.
         
         Args:
             symbol: Trading symbol
             qty_delta: Change in quantity (positive for buy, negative for sell)
             price: Trade execution price
-            fee: Commission/fee for the trade
             
         Raises:
             ValueError: If insufficient cash for a buy order

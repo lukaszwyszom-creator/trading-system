@@ -108,142 +108,142 @@ class PaperExecutionHandler:
         
         # Determine execution price
         exec_price = price if price is not None else signal.price
-        if exec_price is None:
-            raise ValueError("Execution price must be provided either in signal or as parameter")
-        
-        if exec_price <= 0:
-            raise ValueError(f"Execution price must be positive, got {exec_price}")
-        
-        # Apply slippage (simulate market impact)
-        # For BUY orders: positive slippage increases price (worse for buyer)
-        # For SELL orders: negative slippage decreases price (worse for seller)
-        slippage_factor = self._calculate_slippage(signal.side)
-        slipped_price = exec_price * (1 + slippage_factor)
-        slippage_amount = abs(slipped_price - exec_price)
-        
-        # Calculate commission
-        trade_value = signal.qty * slipped_price
-        commission = trade_value * self.commission_rate
-        
-        # Log ORDER event to trade journal
-        self.logger.trade_event(
-            TradeEvent(
-                symbol=signal.symbol,
-                side=signal.side,
-                qty=signal.qty,
-                price=slipped_price,
-                strategy_id=signal.strategy_id,
-                event_type="ORDER",
-                message=f"Order placed: {signal.side} {signal.qty} @ {slipped_price:.2f}",
-            )
-        )
-        
-        # Determine quantity delta (positive for buy, negative for sell)
-        qty_delta = signal.qty if signal.side == "BUY" else -signal.qty
-        
-       # Update portfolio
-try:
-    self.portfolio.update_position(
-        symbol=signal.symbol,
-        qty_delta=qty_delta,
-        price=slipped_price,
-    )
-
-    # Book commission as a separate cost (does not affect avg_price)
-    self.portfolio.cash -= commission
-    self.portfolio.realized_pnl -= commission
-
-except ValueError as e:
-    # Log error if portfolio update fails (e.g., insufficient cash)
-    self.logger.error(
-        f"Failed to execute trade: {str(e)}",
-        symbol=signal.symbol,
-        side=signal.side,
-        qty=signal.qty,
-        price=slipped_price,
-        fee=commission,
-        exc_info=True,
-    )
-    raise
-        
-        # Create fill event
-        fill = FillEvent(
-            timestamp=datetime.now(timezone.utc),
+    if exec_price is None:
+        raise ValueError("Execution price must be provided either in signal or as parameter")
+    
+    if exec_price <= 0:
+        raise ValueError(f"Execution price must be positive, got {exec_price}")
+    
+    # Apply slippage (simulate market impact)
+    # For BUY orders: positive slippage increases price (worse for buyer)
+    # For SELL orders: negative slippage decreases price (worse for seller)
+    slippage_factor = self._calculate_slippage(signal.side)
+    slipped_price = exec_price * (1 + slippage_factor)
+    slippage_amount = abs(slipped_price - exec_price)
+    
+    # Calculate commission
+    trade_value = signal.qty * slipped_price
+    commission = trade_value * self.commission_rate
+    
+    # Log ORDER event to trade journal
+    self.logger.trade_event(
+        TradeEvent(
             symbol=signal.symbol,
             side=signal.side,
             qty=signal.qty,
             price=slipped_price,
             strategy_id=signal.strategy_id,
-            fee=commission,
-            slippage=slippage_amount
+            event_type="ORDER",
+            message=f"Order placed: {signal.side} {signal.qty} @ {slipped_price:.2f}",
+        )
+    )
+    
+    # Determine quantity delta (positive for buy, negative for sell)
+    qty_delta = signal.qty if signal.side == "BUY" else -signal.qty
+    
+    # Update portfolio
+    try:
+        self.portfolio.update_position(
+            symbol=signal.symbol,
+            qty_delta=qty_delta,
+            price=slipped_price,
         )
         
-        # Log FILL event to trade journal
-        self.logger.trade_event(fill.to_trade_event(event_type="FILL"))
-        
-        self.logger.info(
-            f"Trade executed: {fill}",
+        # Book commission as a separate cost (does not affect avg_price)
+        self.portfolio.cash -= commission
+        self.portfolio.realized_pnl -= commission
+    
+    except ValueError as e:
+        # Log error if portfolio update fails (e.g., insufficient cash)
+        self.logger.error(
+            f"Failed to execute trade: {str(e)}",
             symbol=signal.symbol,
             side=signal.side,
             qty=signal.qty,
             price=slipped_price,
             fee=commission,
-            slippage=slippage_amount,
-            portfolio_cash=self.portfolio.cash,
-            realized_pnl=self.portfolio.realized_pnl
+            exc_info=True,
         )
-        
-        return fill
+        raise
     
-    def _calculate_slippage(self, side: str) -> float:
-        """
-        Calculate random slippage for a trade.
-        
-        Slippage is modeled as a uniform random value between 0 and slippage_bps.
-        For BUY orders, slippage is positive (worse price).
-        For SELL orders, slippage is negative (worse price).
-        
-        Args:
-            side: Order side ('BUY' or 'SELL')
-            
-        Returns:
-            Slippage as a fraction (e.g., 0.0005 = 0.05%)
-        """
-        # Generate random slippage between 0 and max slippage
-        slippage = self._rng.uniform(0, self.slippage_bps / 10000.0)
-        
-        # For BUY, slippage increases price; for SELL, it decreases price
-        return slippage if side == "BUY" else -slippage
+    # Create fill event
+    fill = FillEvent(
+        timestamp=datetime.now(timezone.utc),
+        symbol=signal.symbol,
+        side=signal.side,
+        qty=signal.qty,
+        price=slipped_price,
+        strategy_id=signal.strategy_id,
+        fee=commission,
+        slippage=slippage_amount
+    )
     
-    def get_portfolio_summary(self) -> dict:
-        """
-        Get current portfolio summary.
-        
-        Returns:
-            Dictionary with portfolio state including cash, positions, and P&L
-        """
-        positions_summary = []
-        for symbol, position in self.portfolio.positions.items():
-            if position.qty != 0:
-                positions_summary.append({
-                    'symbol': symbol,
-                    'qty': position.qty,
-                    'avg_price': position.avg_price,
-                    'market_value': position.market_value
-                })
-        
-        return {
-            'cash': self.portfolio.cash,
-            'initial_cash': self.portfolio.initial_cash,
-            'realized_pnl': self.portfolio.realized_pnl,
-            'positions': positions_summary,
-            'num_positions': len(positions_summary)
-        }
+    # Log FILL event to trade journal
+    self.logger.trade_event(fill.to_trade_event(event_type="FILL"))
     
-    def __repr__(self) -> str:
-        """Return string representation of execution handler."""
-        return (
-            f"PaperExecutionHandler(cash={self.portfolio.cash:.2f}, "
-            f"commission={self.commission_rate:.4f}, "
-            f"slippage={self.slippage_bps:.2f}bps)"
-        )
+    self.logger.info(
+        f"Trade executed: {fill}",
+        symbol=signal.symbol,
+        side=signal.side,
+        qty=signal.qty,
+        price=slipped_price,
+        fee=commission,
+        slippage=slippage_amount,
+        portfolio_cash=self.portfolio.cash,
+        realized_pnl=self.portfolio.realized_pnl
+    )
+    
+    return fill
+
+def _calculate_slippage(self, side: str) -> float:
+    """
+    Calculate random slippage for a trade.
+    
+    Slippage is modeled as a uniform random value between 0 and slippage_bps.
+    For BUY orders, slippage is positive (worse price).
+    For SELL orders, slippage is negative (worse price).
+    
+    Args:
+        side: Order side ('BUY' or 'SELL')
+        
+    Returns:
+        Slippage as a fraction (e.g., 0.0005 = 0.05%)
+    """
+    # Generate random slippage between 0 and max slippage
+    slippage = self._rng.uniform(0, self.slippage_bps / 10000.0)
+    
+    # For BUY, slippage increases price; for SELL, it decreases price
+    return slippage if side == "BUY" else -slippage
+
+def get_portfolio_summary(self) -> dict:
+    """
+    Get current portfolio summary.
+    
+    Returns:
+        Dictionary with portfolio state including cash, positions, and P&L
+    """
+    positions_summary = []
+    for symbol, position in self.portfolio.positions.items():
+        if position.qty != 0:
+            positions_summary.append({
+                'symbol': symbol,
+                'qty': position.qty,
+                'avg_price': position.avg_price,
+                'market_value': position.market_value
+            })
+    
+    return {
+        'cash': self.portfolio.cash,
+        'initial_cash': self.portfolio.initial_cash,
+        'realized_pnl': self.portfolio.realized_pnl,
+        'positions': positions_summary,
+        'num_positions': len(positions_summary)
+    }
+
+def __repr__(self) -> str:
+    """Return string representation of execution handler."""
+    return (
+        f"PaperExecutionHandler(cash={self.portfolio.cash:.2f}, "
+        f"commission={self.commission_rate:.4f}, "
+        f"slippage={self.slippage_bps:.2f}bps)"
+    )
