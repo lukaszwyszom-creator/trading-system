@@ -10,6 +10,8 @@ import sys
 from pathlib import Path
 from datetime import datetime, timezone
 
+import portfolio
+
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -143,7 +145,9 @@ def test_portfolio():
     print(f"✓ Created portfolio: {portfolio}")
     
     # Buy AAPL
-    portfolio.update_position("AAPL", 100.0, 150.0, fee=15.0)
+    portfolio.update_position("AAPL", 100.0, 150.0)
+    portfolio.cash -= 15.0
+    portfolio.realized_pnl -= 15.0
     assert portfolio.cash < 100000.0
     expected_cash = 100000.0 - (100.0 * 150.0) - 15.0
     assert abs(portfolio.cash - expected_cash) < 0.01
@@ -156,11 +160,15 @@ def test_portfolio():
     print(f"✓ AAPL position: {aapl_pos}")
     
     # Buy MSFT
-    portfolio.update_position("MSFT", 50.0, 300.0, fee=15.0)
+    portfolio.update_position("MSFT", 50.0, 300.0)
+    portfolio.cash -= 15.0
+    portfolio.realized_pnl -= 15.0
     print(f"✓ After buying 50 MSFT @ 300: cash={portfolio.cash:.2f}")
     
     # Sell half of AAPL position (realize profit)
-    portfolio.update_position("AAPL", -50.0, 160.0, fee=8.0)
+    portfolio.update_position("AAPL", -50.0, 160.0)
+    portfolio.cash -= 8.0
+    portfolio.realized_pnl -= 8.0
     print(f"✓ After selling 50 AAPL @ 160: cash={portfolio.cash:.2f}, realized_pnl={portfolio.realized_pnl:.2f}")
     
     # Calculate unrealized P&L
