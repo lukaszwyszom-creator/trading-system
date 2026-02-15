@@ -172,7 +172,9 @@ class TradingLogger:
     
     def error(self, message: str, **kwargs: Any) -> None:
         """Log error message."""
-        self.logger.error(message, extra=kwargs)
+        # Extract exc_info if present and pass it separately
+        exc_info = kwargs.pop('exc_info', False)
+        self.logger.error(message, exc_info=exc_info, extra=kwargs)
     
     def trade_event(self, event: TradeEvent) -> None:
         """

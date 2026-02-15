@@ -115,6 +115,8 @@ class PaperExecutionHandler:
             raise ValueError(f"Execution price must be positive, got {exec_price}")
         
         # Apply slippage (simulate market impact)
+        # For BUY orders: positive slippage increases price (worse for buyer)
+        # For SELL orders: negative slippage decreases price (worse for seller)
         slippage_factor = self._calculate_slippage(signal.side)
         slipped_price = exec_price * (1 + slippage_factor)
         slippage_amount = slipped_price - exec_price

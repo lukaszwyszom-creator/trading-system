@@ -202,13 +202,13 @@ class Portfolio:
     @property
     def equity(self) -> float:
         """
-        Calculate total equity (cash + market value of positions).
+        Get current cash balance.
         
-        Note: This requires current prices, which should be provided via
-        calculate_total_equity(prices) method instead.
+        Note: This property returns only cash without position values.
+        Use calculate_total_equity(prices) to get total equity including positions.
         
         Returns:
-            Current cash (positions not included without prices)
+            Current cash balance
         """
         return self.cash
     
@@ -228,19 +228,6 @@ class Portfolio:
                 # Market value of position
                 total_equity += position.qty * prices[symbol]
         return total_equity
-    
-    @property
-    def unrealized_pnl(self) -> float:
-        """
-        Get unrealized P&L (requires current prices).
-        
-        Note: This property returns 0.0. Use calculate_unrealized_pnl(prices)
-        to get the actual unrealized P&L with current market prices.
-        
-        Returns:
-            0.0 (placeholder, use calculate_unrealized_pnl instead)
-        """
-        return 0.0
     
     def __repr__(self) -> str:
         """Return string representation of portfolio."""
