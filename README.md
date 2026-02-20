@@ -11,12 +11,18 @@ This trading system provides a modular framework for algorithmic trading with:
 - **Market Data Interface**: Abstract interface for connecting to various data sources
 - **Strategy Framework**: Base classes for implementing trading strategies
 - **Structured Logging**: JSON logging with trade journaling for audit trails
-- **Type Safety**: Full type annotations for production code
+- **Technical Analysis CLI**: Full indicator suite (SMA, EMA, RSI, MACD, Bollinger Bands, ATR, OBV) with cyclical pattern detection, CSV export, chart generation, and BUY/SELL/HOLD recommendations
 
 ## Project Structure
 
 ```
 trading-system/
+├── analysis/                   # Technical analysis package
+│   ├── __init__.py
+│   ├── technical.py           # SMA, EMA, RSI, MACD, Bollinger, ATR, OBV
+│   ├── cyclical.py            # FFT-based cyclical pattern detection
+│   ├── recommendations.py     # BUY/SELL/HOLD recommendation engine
+│   └── charts.py              # Multi-panel matplotlib chart generation
 ├── core/                       # Core trading engine
 │   ├── __init__.py
 │   └── engine.py              # TradingEngine class
@@ -43,7 +49,8 @@ trading-system/
 ├── example_engine.py           # Example usage
 ├── test_engine.py              # Core engine test suite
 ├── test_paper_execution.py     # Paper execution test suite
-├── main.py                     # Legacy RSI CLI script
+├── test_analysis.py            # Technical analysis test suite
+├── main.py                     # Technical analysis CLI
 ├── main_with_logging.py        # Legacy example with logging
 ├── test_logger.py              # Logger test script
 └── requirements.txt            # Dependencies
@@ -288,6 +295,41 @@ python test_paper_execution.py
 - PaperExecutionHandler with slippage and commission
 - Buy/sell lifecycle with realized P&L
 - End-to-end engine integration with execution
+
+### Technical Analysis CLI
+
+Run a full technical analysis for any listed stock:
+
+```bash
+# Analyse Apple (last 365 calendar days – default)
+python main.py AAPL
+
+# Analyse a specific ticker with a custom time window
+python main.py MSFT 180
+```
+
+The script:
+1. Downloads OHLCV data via `yfinance`.
+2. Calculates **SMA 50/200**, **EMA 20/50**, **RSI**, **MACD**, **Bollinger Bands**, **ATR**, **OBV**, and **Volume**.
+3. Detects cyclical price patterns using FFT and autocorrelation.
+4. Generates a trade recommendation (BUY/SELL/HOLD).
+   - For a **BUY** signal it also provides:
+     - **Entry price** (current close)
+     - **Exit price** (entry × 1.10, targeting ≥ 10 % return within ≤ 30 days)
+5. Saves results to `<TICKER>_analysis.csv` (one row per trading day).
+6. Saves a multi-panel technical chart to `<TICKER>_analysis.png`.
+
+**CSV schema:**
+
+| Date | SMA_50 | SMA_200 | RSI | MACD_Signal | Bollinger_Upper | Bollinger_Lower | ATR | OBV | Volume | Recommendation |
+|------|--------|---------|-----|-------------|-----------------|-----------------|-----|-----|--------|---------------|
+| 2026-02-19 | 145.23 | 140.45 | 60.5 | 1.23 | 150.23 | 135.20 | 2.5 | 1234 | 100000 | BUY: Entry=140, Exit=155 (+10% in ≤30 days) |
+
+**Run the analysis test suite:**
+
+```bash
+python test_analysis.py
+```
 
 ### Legacy RSI Example
 
