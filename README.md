@@ -153,7 +153,7 @@ class MyStrategy(BaseStrategy):
                 side="BUY",
                 qty=100,
                 strategy_id=self.strategy_id,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 price=price
             )
         return None
@@ -251,6 +251,7 @@ class FillEvent:
     strategy_id: str        # Originating strategy
     fee: float              # Commission/fee paid
     slippage: float         # Slippage amount
+```
 
 
 ## Running the System

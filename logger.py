@@ -8,7 +8,7 @@ colored console output, and specialized trade event journaling.
 import json
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
@@ -64,7 +64,7 @@ class JSONFormatter(logging.Formatter):
         """Format log record as JSON."""
            
         log_data: Dict[str, Any] = {
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'timestamp': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%f') + 'Z',
             'level': record.levelname,
             'logger': record.name,
             'message': record.getMessage(),
@@ -112,7 +112,7 @@ class TradeEvent:
         message: Optional[str] = None
     ) -> None:
         """Initialize trade event."""
-        self.timestamp: str = datetime.utcnow().isoformat() + 'Z'
+        self.timestamp: str = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%f') + 'Z'
         self.symbol: str = symbol
         self.side: str = side
         self.qty: Optional[float] = qty
